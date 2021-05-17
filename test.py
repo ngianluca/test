@@ -49,7 +49,7 @@ def run(argv=None, save_main_session=True):
   parser.add_argument(
       '--input',
       dest='input',
-      default='gs://dataflow-samples/shakespeare/kinglear.txt',
+      default='gs://swiftmessage-bucket/test.txt',
       help='Input file to process.')
   parser.add_argument(
       '--output',
