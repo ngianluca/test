@@ -32,11 +32,6 @@ def run(argv=None):
         p
         | 'UTF-8 bytes to string' >> beam.Map(lambda msg: msg.decode('utf-8'))
         #| beam.Map(print)
-        | 'Write to Table' >> beam.io.WriteToBigQuery(
-                        create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
-                        write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
-                        )
-        
         )
 
 if __name__ == '__main__':
