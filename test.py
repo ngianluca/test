@@ -91,8 +91,8 @@ def run(argv=None, save_main_session=True):
   
   with beam.Pipeline(options=pipeline_options) as p:
       
-    input_subscription=f"projects/{PROJECT}/subscriptions/{SUBSCRIPTION}"
-    output_table=f"{PROJECT}:{DATASET}.{TABLE}"
+    input_subscription="projects/{PROJECT}/subscriptions/{SUBSCRIPTION}"
+    output_table="{PROJECT}:{DATASET}.{TABLE}"
     
     _ = (
         
