@@ -49,7 +49,7 @@ SCHEMA = {'fields': [{'name': 'foo', 'type': 'STRING', 'mode': 'NULLABLE'}]}
 def create_topic():
     
     publisher = pubsub_v1.PublisherClient()
-    topic_name = f"projects/{PROJECT}/topics/{TOPIC}"
+    topic_name = "projects/{PROJECT}/topics/{TOPIC}"
     publisher.create_topic(topic_name)
 
 def create_subscriber():
