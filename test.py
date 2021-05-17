@@ -34,9 +34,9 @@ PROJECT="swiftflow-pipeline-poc"
 DATASET="test_dataset"
 TABLE="test_tablse"
 TOPIC="SwiftMessage"
-INPUT=f"{BUCKET}/{INPUT_FILE}"
+INPUT="{BUCKET}/{INPUT_FILE}"
 SUBSCRIPTION="SwiftMessage-sub" # You can create a subscription and refer to it here
-OUTPUT_TOPIC=f"projects/{PROJECT}/topics/{TOPIC}"
+OUTPUT_TOPIC="projects/{PROJECT}/topics/{TOPIC}"
 
 # Schema: mandatory for streaming
 
