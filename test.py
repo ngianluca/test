@@ -20,7 +20,7 @@ options = PipelineOptions(
 #   pass  # build your pipeline here.
 
 def run():
-    pass
+    p = Pipeline(options=options)
 
 if __name__ == "__main__":
     run()
