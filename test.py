@@ -1,49 +1,25 @@
-import logging
 import apache_beam as beam
+from apache_beam.options.pipeline_options import PipelineOptions
 
-PROJECT = "swiftflow-pipeline-poc"
-BUCKET = "swiftmessage-bucket"
-schema = "event:NULLABLE"
-FIELD_NAMES = ["foo"]
+# Create and set your PipelineOptions.
+# For Cloud execution, specify DataflowRunner and set the Cloud Platform
+# project, job name, temporary files location, and region.
+# For more information about regions, check:
+# https://cloud.google.com/dataflow/docs/concepts/regional-endpoints
+options = PipelineOptions(
+    flags=argv,
+    runner='DataflowRunner',
+    project='my-project-id',
+    job_name='unique-job-name',
+    temp_location='gs://my-bucket/temp',
+    region='us-central1')
 
-
-class CsvToDictFn(beam.DoFn):
-    def process(self, element):
-        return [dict(zip(FIELD_NAMES, element.split(",")))]
-
+# Create the Pipeline with the specified options.
+# with beam.Pipeline(options=options) as pipeline:
+#   pass  # build your pipeline here.
 
 def run():
-    argv = [
-        "--project={0}".format(PROJECT),
-        "--staging_location=gs://{0}/staging/".format(BUCKET),
-        "--temp_location=gs://{0}/staging/".format(BUCKET),
-        "--runner=DataflowRunner",
-        "--max_num_workers=2",
-        "--save_main_session",
-        "--experiments=use_beam_bq_sink"
-    ]
-
-    p = beam.Pipeline(argv=argv)
-
-    data = ['{0},good_line_{1}'.format(i + 1, i + 1) for i in range(10)]
-    data.append('this is a bad row')
-
-    events = (p
-        | "Create data" >> beam.Create(data)
-        | "CSV to dict" >> beam.ParDo(CsvToDictFn())
-        | "Write results" >> beam.io.gcp.bigquery.WriteToBigQuery(
-            "{0}:dataflow_test.good_lines".format(PROJECT),
-            schema=schema,
-            method='STREAMING_INSERTS'
-        )
-    )
-
-    (events[beam.io.gcp.bigquery.BigQueryWriteFn.FAILED_ROWS]
-        | "Bad lines" >> beam.io.textio.WriteToText("gs://{0}/error_log.txt".format(BUCKET)))
-
-    p.run()
-
+    pass
 
 if __name__ == "__main__":
-    logging.getLogger().setLevel(logging.DEBUG)
     run()
