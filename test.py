@@ -1,4 +1,5 @@
 import apache_beam as beam
+import sys
 from apache_beam.options.pipeline_options import PipelineOptions
 
 # Create and set your PipelineOptions.
@@ -7,7 +8,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 # For more information about regions, check:
 # https://cloud.google.com/dataflow/docs/concepts/regional-endpoints
 options = PipelineOptions(
-    flags=argv,
+    flags=sys.argv,
     runner='DataflowRunner',
     project='swiftflow-pipeline-poc',
     job_name='unique-job-name',
