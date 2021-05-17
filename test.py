@@ -54,7 +54,7 @@ def run(argv=None, save_main_session=True):
   parser.add_argument(
       '--output',
       dest='output',
-      required=True,
+      required=False,
       help='Output file to write results to.')
   known_args, pipeline_args = parser.parse_known_args(argv)
 
