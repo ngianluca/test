@@ -19,7 +19,7 @@ options = PipelineOptions(
 # with beam.Pipeline(options=options) as pipeline:
 #   pass  # build your pipeline here.
 
-def run(argv=None, save_main_session=True):
+def run(argv=None):
   """Build and run the pipeline."""
   
   pipeline_options = PipelineOptions(save_main_session=True, streaming=True)
