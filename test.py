@@ -1,91 +1,117 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
-"""A word-counting workflow."""
+"""
+* Copyright (C) Alpina Analytics, GmbH - All Rights Reserved
+* Unauthorized copying of this file, via any medium is strictly prohibited
+* Proprietary and confidential
+"""
 
 # pytype: skip-file
 
+from __future__ import absolute_import
+
+import os
 import argparse
 import logging
-import re
+import json
+
+from past.builtins import unicode
 
 import apache_beam as beam
-from apache_beam.io import ReadFromText
-from apache_beam.io import WriteToText
+import apache_beam.transforms.window as window
+from apache_beam.examples.wordcount_with_metrics import WordExtractingDoFn
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
+from apache_beam.options.pipeline_options import StandardOptions
 
+from google.cloud import pubsub_v1
+from google.cloud import pubsub
 
-class WordExtractingDoFn(beam.DoFn):
-  """Parse each line of input text into words."""
-  def process(self, element):
-    """Returns an iterator over the words of this element.
-    The element is a line of text.  If the line is blank, note that, too.
-    Args:
-      element: the element being processed
-    Returns:
-      The processed element.
-    """
-    return re.findall(r'[\w\']+', element, re.UNICODE)
+from google.cloud import bigquery
 
+# Globals
+BUCKET="gs://swiftmessage-bucket"
+INPUT_FILE="dummy_input4.json"
+PROJECT="swiftflow-pipeline-poc"
+DATASET="test_dataset"
+TABLE="test_tablse"
+TOPIC="SwiftMessage"
+INPUT=f"{BUCKET}/{INPUT_FILE}"
+SUBSCRIPTION="SwiftMessage-sub" # You can create a subscription and refer to it here
+OUTPUT_TOPIC=f"projects/{PROJECT}/topics/{TOPIC}"
+
+# Schema: mandatory for streaming
+
+SCHEMA = {'fields': [{'name': 'foo', 'type': 'STRING', 'mode': 'NULLABLE'}]}
+
+# Authentication
+
+# PubSub utils
+
+def create_topic():
+    
+    publisher = pubsub_v1.PublisherClient()
+    topic_name = f"projects/{PROJECT}/topics/{TOPIC}"
+    publisher.create_topic(topic_name)
+
+def create_subscriber():
+    
+    publisher = pubsub_v1.PublisherClient()
+    subscriber = pubsub_v1.SubscriberClient()
+    topic_path = publisher.topic_path(PROJECT, TOPIC)
+    sub_path = subscriber.subscription_path(PROJECT, SUBSCRIPTION)
+    subscriber.create_subscription(name=sub_path,topic=topic_path)
+
+def publish(msg=b'My first message!'):
+
+    publisher = pubsub_v1.PublisherClient()
+    topic_path = publisher.topic_path(PROJECT, TOPIC)
+    publisher.publish(topic_path,msg,spam='eggs')
+
+# Beam utils
+
+def create_random_record(line):
+    
+    print("The message flowing through beam :")
+    print(line)
+        
+    try:
+        
+        return {"foo":line}
+  
+    except:
+    
+        return {"foo":"Could not take line"}
+  
+
+# Run
 
 def run(argv=None, save_main_session=True):
-  """Main entry point; defines and runs the wordcount pipeline."""
-  parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--input',
-      dest='input',
-      default='gs://swiftmessage-bucket/test.txt',
-      help='Input file to process.')
-  parser.add_argument(
-      '--output',
-      dest='output',
-      required=True,
-      help='Output file to write results to.')
-  known_args, pipeline_args = parser.parse_known_args(argv)
-
-  # We use the save_main_session option because one or more DoFn's in this
-  # workflow rely on global context (e.g., a module imported at module level).
-  pipeline_options = PipelineOptions(pipeline_args)
-  pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
-
-  # The pipeline will be run on exiting the with block.
+  """Build and run the pipeline."""
+  
+  pipeline_options = PipelineOptions(save_main_session=True, streaming=True, runner='DataflowRunner')
+  
   with beam.Pipeline(options=pipeline_options) as p:
-
-    # Read the text file[pattern] into a PCollection.
-    lines = p | 'Read' >> ReadFromText(known_args.input)
-
-    counts = (
-        lines
-        | 'Split' >> (beam.ParDo(WordExtractingDoFn()).with_output_types(str))
-        | 'PairWIthOne' >> beam.Map(lambda x: (x, 1))
-        | 'GroupAndSum' >> beam.CombinePerKey(sum))
-
-    # Format the counts into a PCollection of strings.
-    def format_result(word, count):
-      return '%s: %d' % (word, count)
-
-    output = counts | 'Format' >> beam.MapTuple(format_result)
-
-    # Write the output using a "Write" transform that has side effects.
-    # pylint: disable=expression-not-assigned
-    output | 'Write' >> WriteToText(known_args.output)
-
+      
+    input_subscription=f"projects/{PROJECT}/subscriptions/{SUBSCRIPTION}"
+    output_table=f"{PROJECT}:{DATASET}.{TABLE}"
+    
+    _ = (
+        
+        p
+        | 'Read from Pub/Sub' >> beam.io.ReadFromPubSub(subscription=input_subscription).with_output_types(bytes)
+        | 'UTF-8 bytes to string' >> beam.Map(lambda msg: msg.decode('utf-8'))
+        #| beam.Map(print)
+        | beam.Map(create_random_record)
+        | 'Write to Table' >> beam.io.WriteToBigQuery(
+                        output_table,
+                        schema = SCHEMA,
+                        custom_gcs_temp_location=BUCKET,
+                        create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
+                        write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND
+                        )
+        
+        )
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   run()
+
