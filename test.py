@@ -9,10 +9,10 @@ from apache_beam.options.pipeline_options import PipelineOptions
 options = PipelineOptions(
     flags=argv,
     runner='DataflowRunner',
-    project='my-project-id',
+    project='swiftflow-pipeline-poc',
     job_name='unique-job-name',
-    temp_location='gs://my-bucket/temp',
-    region='us-central1')
+    temp_location='gs://swiftmessage-bucket',
+    region='europe-west6')
 
 # Create the Pipeline with the specified options.
 # with beam.Pipeline(options=options) as pipeline:
